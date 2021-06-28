@@ -1,0 +1,107 @@
+version: 3.9
+services:
+  homeassistant:
+    container_name: homeassistant
+    image: ghcr.io/home-assistant/home-assistant:stable
+    volumes:
+      - ${CONFIG_PATH}/homeassistant:/config
+      - /etc/localtime:/etc/localtime:ro
+    privileged: true
+    ports:
+        - 4040:8443
+    restart: unless-stopped
+
+  transmission:
+    image: ghcr.io/linuxserver/transmission
+    container_name: transmission
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+      # - TRANSMISSION_WEB_HOME=/combustion-release/ #optional
+      # - USER=username #optional
+      # - PASS=password #optional
+      # - WHITELIST=iplist #optional
+      # - HOST_WHITELIST=dnsnane list #optional
+    volumes:
+      - ${CONFIG_PATH}/transmission:/config
+      - ${DOWNLOADS_PATH}:/downloads
+      - ${DOWNLOADS_PATH}/transmissionwatch:/watch
+    ports:
+      - 9091:9091
+      - 51413:51413
+      - 51413:51413/udp
+    restart: unless-stopped
+
+  jackett:
+    image: ghcr.io/linuxserver/jackett
+    container_name: jackett
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+      - AUTO_UPDATE=true #optional
+    volumes:
+      - ./jackett/config:/config
+      - ${DOWNLOADS_PATH}:jackett/downloads
+    ports:
+      - 9117:9117
+    restart: unless-stopped
+
+  sonarr:
+    image: ghcr.io/linuxserver/sonarr
+    container_name: sonarr
+    environment:
+    - PUID=1000
+    - PGID=1000
+    - TZ=America/Los_Angeles
+    volumes:
+    - ${CONFIG_PATH}/sonarr:/config
+    - ${MULTIMEDIA_PATH}:/tv #optional
+    - ${DOWNLOADS_PATH}:/downloads #optional
+    ports:
+    - 8989:8989
+    restart: unless-stopped
+
+  nginxproxmanager:
+    image: jc21/nginx-proxy-manager:latest
+    restart: unless-stopped
+    ports:
+      - 2080:80
+      - 2081:81
+      - 20443:443
+    environment:
+      DB_MYSQL_HOST: db
+      DB_MYSQL_PORT: 3306
+      DB_MYSQL_USER: npm
+      DB_MYSQL_PASSWORD: npm
+      DB_MYSQL_NAME: npm
+    volumes:
+      - ${CONFIG_PATH}/nginxproxmanager/data:/data
+      - ${CONFIG_PATH}/nginxproxmanager/letsencrypt:/etc/letsencrypt
+
+  nginxproxmanagerddb:
+    image: jc21/mariadb-aria:latest
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: npm
+      MYSQL_DATABASE: npm
+      MYSQL_USER: npm
+      MYSQL_PASSWORD: npm
+    volumes:
+      - ${CONFIG_PATH}/nginxproxmanager/mysql:/var/lib/mysql
+
+  unblockneteasemusic:
+    image: nondanee/unblockneteasemusic
+    environment:
+      NODE_ENV: production
+    ports:
+      - 1630:8080
+    restart: unless-stopped
+
+  watchtower:
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: --cleanup
+    restart: unless-stopped
