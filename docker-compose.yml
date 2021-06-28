@@ -68,9 +68,9 @@ services:
     image: jc21/nginx-proxy-manager:latest
     restart: unless-stopped
     ports:
-      - 2080:80
-      - 2081:81
-      - 20443:443
+      - 80:80
+      - 81:81
+      - 443:443
     environment:
       DB_MYSQL_HOST: nginxproxmanagerddb
       DB_MYSQL_PORT: 3306
