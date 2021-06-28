@@ -78,7 +78,7 @@ services:
       - ${CONFIG_PATH}/nginxproxmanager/data:/data
       - ${CONFIG_PATH}/nginxproxmanager/letsencrypt:/etc/letsencrypt
 
-  nginxproymanagerddb:
+  nginxproxymanagerddb:
     image: jc21/mariadb-aria:latest
     restart: unless-stopped
     environment:
