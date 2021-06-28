@@ -64,12 +64,12 @@ services:
     - 8989:8989
     restart: unless-stopped
 
-  nginxproxmanager:
+  nginxproxymanager:
     image: jc21/nginx-proxy-manager:latest
     restart: unless-stopped
     network_mode: host
     environment:
-      DB_MYSQL_HOST: nginxproxmanagerddb
+      DB_MYSQL_HOST: nginxproxymanagerddb
       DB_MYSQL_PORT: 3306
       DB_MYSQL_USER: npm
       DB_MYSQL_PASSWORD: npm
@@ -78,7 +78,7 @@ services:
       - ${CONFIG_PATH}/nginxproxmanager/data:/data
       - ${CONFIG_PATH}/nginxproxmanager/letsencrypt:/etc/letsencrypt
 
-  nginxproxmanagerddb:
+  nginxproymanagerddb:
     image: jc21/mariadb-aria:latest
     restart: unless-stopped
     environment:
