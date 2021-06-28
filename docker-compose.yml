@@ -43,7 +43,7 @@ services:
       - AUTO_UPDATE=true #optional
     volumes:
       - ${CONFIG_PATH}/jackett/config:/config
-      - ${DOWNLOADS_PATH}:jackett/downloads
+      - ${DOWNLOADS_PATH}:/jackett/downloads
     ports:
       - 9117:9117
     restart: unless-stopped
