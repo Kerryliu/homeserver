@@ -6,6 +6,8 @@ services:
     volumes:
       - ${CONFIG_PATH}/homeassistant:/config
       - /etc/localtime:/etc/localtime:ro
+    devices:
+      - /dev/ttyACM0:/dev/ttyUSB0
     privileged: true
     network_mode: host
     restart: unless-stopped
