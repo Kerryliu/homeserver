@@ -111,7 +111,7 @@ services:
     environment:
       NODE_ENV: production
     ports:
-      - 1630:1630
+      - 1630:8080
     restart: unless-stopped
 
   watchtower:
