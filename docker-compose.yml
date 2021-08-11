@@ -12,9 +12,27 @@ services:
     network_mode: host
     restart: unless-stopped
 
+  vpn:
+    image: ghcr.io/bubuntux/nordvpn:latest
+    cap_add:
+      - NET_ADMIN               # Required
+    environment:                # Review https://github.com/bubuntux/nordvpn#environment-variables
+      - USER=${NORD_VPN_USER}   # Required
+      - PASS=${NORD_VPN_PASS}   # Required
+      - CONNECT=United_States
+      - TECHNOLOGY=NordLynx
+      - NETWORK=192.168.1.0/24  # So it can be accessed within the local network
+    ports:
+      - 9091:9091
+      - 51413:51413
+      - 51413:51413/udp
+
   transmission:
-    image: ghcr.io/linuxserver/transmission
+    image: ghcr.io/linuxserver/transmission:latest
     container_name: transmission
+    network_mode: service:vpn
+    depends_on:
+      - vpn
     environment:
       - PUID=1000
       - PGID=1000
@@ -28,14 +46,10 @@ services:
       - ${CONFIG_PATH}/transmission:/config
       - ${DOWNLOADS_PATH}:/downloads
       - ${DOWNLOADS_PATH}/transmissionwatch:/watch
-    ports:
-      - 9091:9091
-      - 51413:51413
-      - 51413:51413/udp
     restart: unless-stopped
 
   jackett:
-    image: ghcr.io/linuxserver/jackett
+    image: ghcr.io/linuxserver/jackett:latest
     container_name: jackett
     environment:
       - PUID=1000
@@ -50,7 +64,7 @@ services:
     restart: unless-stopped
 
   sonarr:
-    image: ghcr.io/linuxserver/sonarr
+    image: ghcr.io/linuxserver/sonarr:latest
     container_name: sonarr
     environment:
     - PUID=1000
@@ -93,15 +107,15 @@ services:
       - ${CONFIG_PATH}/nginxproxymanager/mysql:/var/lib/mysql
 
   unblockneteasemusic:
-    image: nondanee/unblockneteasemusic
+    image: nondanee/unblockneteasemusic:latest
     environment:
       NODE_ENV: production
     ports:
-      - 1630:8080
+      - 1630:1630
     restart: unless-stopped
 
   watchtower:
-    image: containrrr/watchtower
+    image: containrrr/watchtower:latest
     container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
