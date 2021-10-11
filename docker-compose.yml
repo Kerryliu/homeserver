@@ -24,6 +24,7 @@ services:
       - NETWORK=192.168.1.0/24  # So it can be accessed within the local network
     ports:
       - 9091:9091
+      - 9117:9117
       - 51413:51413
       - 51413:51413/udp
 
@@ -51,6 +52,9 @@ services:
   jackett:
     image: ghcr.io/linuxserver/jackett:latest
     container_name: jackett
+    network_mode: service:vpn
+    depends_on:
+      - vpn
     environment:
       - PUID=1000
       - PGID=1000
@@ -59,8 +63,6 @@ services:
     volumes:
       - ${CONFIG_PATH}/jackett/config:/config
       - ${DOWNLOADS_PATH}:/jackett/downloads
-    ports:
-      - 9117:9117
     restart: unless-stopped
 
   sonarr:
