@@ -1,0 +1,185 @@
+version: "3.9"
+services:
+  homeassistant:
+    container_name: homeassistant
+    image: ghcr.io/home-assistant/home-assistant:stable
+    volumes:
+      - ${CONFIG_PATH}/homeassistant:/config
+      - /etc/localtime:/etc/localtime:ro
+    devices:
+      - /dev/ttyACM0:/dev/ttyUSB0
+    privileged: true
+    network_mode: host
+    restart: unless-stopped
+
+  vpn:
+    image: ghcr.io/bubuntux/nordlynx:latest
+    network_mode: bridge
+    cap_add:
+      - NET_ADMIN #required
+    environment:
+      - PRIVATE_KEY=${NORD_VPN_PRIVATE_KEY}
+      - NET_LOCAL=192.168.1.0/24
+    restart: unless-stopped
+    ports:
+      - 9091:9091
+      - 9117:9117
+      - 51413:51413
+      - 8989:8989
+      - 51413:51413/udp
+
+  transmission:
+    image: ghcr.io/linuxserver/transmission:latest
+    container_name: transmission
+    network_mode: service:vpn
+    depends_on:
+      - vpn
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+      # - TRANSMISSION_WEB_HOME=/combustion-release/ #optional
+      # - USER=username #optional
+      # - PASS=password #optional
+      # - WHITELIST=iplist #optional
+      # - HOST_WHITELIST=dnsnane list #optional
+    volumes:
+      - ${CONFIG_PATH}/transmission:/config
+      - ${DOWNLOADS_PATH}:/downloads
+      - ${DOWNLOADS_PATH}/transmissionwatch:/watch
+    restart: unless-stopped
+
+  jackett:
+    image: ghcr.io/linuxserver/jackett:latest
+    container_name: jackett
+    network_mode: service:vpn
+    depends_on:
+      - vpn
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+      - AUTO_UPDATE=true #optional
+    volumes:
+      - ${CONFIG_PATH}/jackett/config:/config
+      - ${DOWNLOADS_PATH}:/jackett/downloads
+    restart: unless-stopped
+
+  sonarr:
+    image: ghcr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    network_mode: service:vpn
+    depends_on:
+      - vpn
+    environment:
+    - PUID=1000
+    - PGID=1000
+    - TZ=America/Los_Angeles
+    volumes:
+    - ${CONFIG_PATH}/sonarr:/config
+    - ${MULTIMEDIA_PATH}:/tv #optional
+    - ${DOWNLOADS_PATH}:/downloads #optional
+    restart: unless-stopped
+
+  nginxproxymanager:
+    image: jc21/nginx-proxy-manager:latest
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    environment:
+      DB_MYSQL_HOST: nginxproxymanagerdb
+      DB_MYSQL_PORT: 3306
+      DB_MYSQL_USER: npm
+      DB_MYSQL_PASSWORD: npm
+      DB_MYSQL_NAME: npm
+    volumes:
+      - ${CONFIG_PATH}/nginxproxymanager/data:/data
+      - ${CONFIG_PATH}/nginxproxymanager/letsencrypt:/etc/letsencrypt
+
+  nginxproxymanagerdb:
+    image: jc21/mariadb-aria:latest
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: npm
+      MYSQL_DATABASE: npm
+      MYSQL_USER: npm
+      MYSQL_PASSWORD: npm
+    volumes:
+      - ${CONFIG_PATH}/nginxproxymanager/mysql:/var/lib/mysql
+
+  miniflux:
+    image: miniflux/miniflux:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      minifluxdb:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://miniflux:secret@minifluxdb/miniflux?sslmode=disable
+      - RUN_MIGRATIONS=1
+      - CREATE_ADMIN=1
+      - ADMIN_USERNAME=${MINIFLUX_USER}
+      - ADMIN_PASSWORD=${MINIFLUX_PASS}
+
+  minifluxdb:
+    image: postgres:latest
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=miniflux
+      - POSTGRES_PASSWORD=secret
+    volumes:
+      - ${CONFIG_PATH}/miniflux/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "miniflux"]
+      interval: 10s
+      start_period: 30s
+
+  adguardhome:
+    image: adguard/adguardhome:latest
+    container_name: adguardhome
+    ports:
+      - 53:53/tcp
+      - 53:53/udp
+      - 3000:3000/tcp
+      - 8081:80/tcp
+      - 8443:443/tcp
+    volumes:
+      - ${CONFIG_PATH}/adguard/work:/opt/adguardhome/work
+      - ${CONFIG_PATH}/adguard/config:/opt/adguardhome/conf
+    restart: unless-stopped
+
+  wireguard:
+    image: lscr.io/linuxserver/wireguard
+    container_name: wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - SERVERURL=wireguard.kerryliu.com #optional
+      - SERVERPORT=51820 #optional
+      - PEERS=3 #optional
+      - PEERDNS=192.168.1.1 #optional
+      - INTERNAL_SUBNET=10.13.13.0 #optional
+      - ALLOWEDIPS=0.0.0.0/0 #optional
+    volumes:
+      - ${CONFIG_PATH}/wireguard:/config
+      - /lib/modules:/lib/modules
+    ports:
+      - 51820:51820/udp
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: --cleanup
+    restart: unless-stopped
