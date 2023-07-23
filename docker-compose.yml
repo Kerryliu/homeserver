@@ -1,7 +1,6 @@
 version: "3.9"
 services:
   homeassistant:
-    container_name: homeassistant
     image: ghcr.io/home-assistant/home-assistant
     volumes:
       - ${CONFIG_PATH}/homeassistant:/config
@@ -32,7 +31,6 @@ services:
 
   transmission:
     image: ghcr.io/linuxserver/transmission
-    container_name: transmission
     network_mode: service:vpn
     depends_on:
       - vpn
@@ -53,7 +51,6 @@ services:
 
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:develop
-    container_name: prowlarr
     network_mode: service:vpn
     depends_on:
       - vpn
@@ -67,7 +64,6 @@ services:
 
   sonarr:
     image: ghcr.io/linuxserver/sonarr
-    container_name: sonarr
     network_mode: service:vpn
     depends_on:
       - vpn
@@ -83,7 +79,6 @@ services:
 
   radarr:
     image: lscr.io/linuxserver/radarr
-    container_name: radarr
     network_mode: service:vpn
     depends_on:
       - vpn
@@ -127,7 +122,6 @@ services:
 
   adguardhome:
     image: adguard/adguardhome
-    container_name: adguardhome
     ports:
       - 53:53/tcp
       - 53:53/udp
@@ -139,34 +133,8 @@ services:
       - ${CONFIG_PATH}/adguard/config:/opt/adguardhome/conf
     restart: unless-stopped
 
-  wireguard:
-    image: lscr.io/linuxserver/wireguard
-    container_name: wireguard
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/Los_Angeles
-      - SERVERURL=wireguard.kerryliu.com #optional
-      - SERVERPORT=51820 #optional
-      - PEERS=3 #optional
-      - PEERDNS=192.168.1.1 #optional
-      - INTERNAL_SUBNET=10.13.13.0 #optional
-      - ALLOWEDIPS=0.0.0.0/0 #optional
-    volumes:
-      - ${CONFIG_PATH}/wireguard:/config
-      - /lib/modules:/lib/modules
-    ports:
-      - 51820:51820/udp
-    sysctls:
-      - net.ipv4.conf.all.src_valid_mark=1
-    restart: unless-stopped
-
   komga:
     image: gotson/komga
-    container_name: komga
     volumes:
       - ${CONFIG_PATH}/komga/config:/config
       - ${BOOKS_PATH}:/data #optional
@@ -177,11 +145,12 @@ services:
 
   watchtower:
     image: containrrr/watchtower
-    container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     command: --cleanup
     restart: unless-stopped
+    environment:
+      - WATCHTOWER_NOTIFICATION_URL=discord://${DISCORD_TOKEN}@${DISCORD_WEB_HOOK_ID}?Username=Watchtower
 
   cloudflared:
     image: cloudflare/cloudflared
@@ -189,3 +158,12 @@ services:
     command: tunnel run
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARED_TOKEN}
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    restart: unless-stopped
+    volumes:
+      - ${CONFIG_PATH}/kuma:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 3001:3001
