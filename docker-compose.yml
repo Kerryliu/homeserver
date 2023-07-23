@@ -148,6 +148,21 @@ services:
       - ${CONFIG_PATH}/adguard/config:/opt/adguardhome/conf
     restart: unless-stopped
 
+  plex:
+    image: lscr.io/linuxserver/plex
+    container_name: plex
+    network_mode: host
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/PST
+      - VERSION=docker
+    volumes:
+      - ${CONFIG_PATH}/plex:/config
+      - ${TV_PATH}:/tv #optional
+      - ${MOVIE_PATH}:/movies #optional
+    restart: unless-stopped
+
   komga:
     image: gotson/komga
     volumes:
