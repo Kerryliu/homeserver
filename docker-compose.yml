@@ -14,16 +14,11 @@ services:
     restart: unless-stopped
 
   vpn:
-    image: ghcr.io/bubuntux/nordvpn
-    network_mode: bridge
+    image: ghcr.io/bubuntux/nordlynx
     cap_add:
       - NET_ADMIN #required
-      - NET_RAW # required
     environment:
-      - TOKEN=${NORD_VPN_ACCESS_TOKEN}
-      - CONNECT=United_States
-      - TECHNOLOGY=NordLynx
-      - NETWORK=192.168.1.0/24
+      - PRIVATE_KEY=${NORD_VPN_PRIVATE_KEY}
     restart: unless-stopped
     ports:
       - 9117:9117 # jackett
