@@ -14,13 +14,16 @@ services:
     restart: unless-stopped
 
   vpn:
-    image: ghcr.io/bubuntux/nordlynx:latest
+    image: ghcr.io/bubuntux/nordvpn:latest
     network_mode: bridge
     cap_add:
       - NET_ADMIN #required
+      - NET_RAW # required
     environment:
-      - PRIVATE_KEY=${NORD_VPN_PRIVATE_KEY}
-      - NET_LOCAL=192.168.1.0/24
+      - TOKEN=${NORD_VPN_PRIVATE_KEY}
+      - CONNECT=United_States
+      - TECHNOLOGY=NordLynx
+      - NETWORK=192.168.1.0/24
     restart: unless-stopped
     ports:
       - 9117:9117 # jackett
@@ -98,34 +101,6 @@ services:
       - ${DOWNLOADS_PATH}:/downloads #optional
     restart: unless-stopped
 
-  nginxproxymanager:
-    image: jc21/nginx-proxy-manager:latest
-    restart: unless-stopped
-    ports:
-      - '80:80'
-      - '81:81'
-      - '443:443'
-    environment:
-      DB_MYSQL_HOST: nginxproxymanagerdb
-      DB_MYSQL_PORT: 3306
-      DB_MYSQL_USER: npm
-      DB_MYSQL_PASSWORD: npm
-      DB_MYSQL_NAME: npm
-    volumes:
-      - ${CONFIG_PATH}/nginxproxymanager/data:/data
-      - ${CONFIG_PATH}/nginxproxymanager/letsencrypt:/etc/letsencrypt
-
-  nginxproxymanagerdb:
-    image: jc21/mariadb-aria:latest
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: npm
-      MYSQL_DATABASE: npm
-      MYSQL_USER: npm
-      MYSQL_PASSWORD: npm
-    volumes:
-      - ${CONFIG_PATH}/nginxproxymanager/mysql:/var/lib/mysql
-
   miniflux:
     image: miniflux/miniflux:latest
     restart: unless-stopped
@@ -200,7 +175,7 @@ services:
       - ${CONFIG_PATH}/komga/config:/config
       - ${BOOKS_PATH}:/data #optional
     ports:
-      - 8090:8080
+      - 25600:8080
     user: "1000:1000"
     restart: unless-stopped
 
@@ -211,3 +186,10 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     command: --cleanup
     restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel run
+    environmen:
+      - TUNNEL_TOKEN:${CLOUDFLARED_TOKEN}
