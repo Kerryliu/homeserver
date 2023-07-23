@@ -188,4 +188,4 @@ services:
     restart: unless-stopped
     command: tunnel run
     environment:
-      - TUNNEL_TOKEN:${CLOUDFLARED_TOKEN}
+      - TUNNEL_TOKEN=${CLOUDFLARED_TOKEN}
