@@ -191,5 +191,5 @@ services:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
     command: tunnel run
-    environmen:
+    environment:
       - TUNNEL_TOKEN:${CLOUDFLARED_TOKEN}
