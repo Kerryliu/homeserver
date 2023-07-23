@@ -12,6 +12,21 @@ services:
     network_mode: host
     restart: unless-stopped
 
+  tailscale:
+    image: tailscale/tailscale
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      - TS_AUTHKEY=${TAIL_SCALE_AUTH_KEY}
+      - TS_ROUTES=192.168.1.0/24
+      - TS_STATE_DIR=/var/lib
+      - TS_EXTRA_ARGS= --advertise-exit-node --accept-routes
+    volumes:
+      - ${CONFIG_PATH}/tailscale:/var/lib
+      - /dev/net/tun:/dev/net/tun
+
   vpn:
     image: ghcr.io/bubuntux/nordlynx
     cap_add:
@@ -167,3 +182,27 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - 3001:3001
+
+  portainer:
+    image: portainer/portainer-ce
+    ports:
+      - 9443:9443
+      - 9000:9000
+    volumes:
+      - ${CONFIG_PATH}/portainer:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+
+  heimdall:
+    image: lscr.io/linuxserver/heimdall
+    container_name: heimdall
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/PST
+    volumes:
+      - ${CONFIG_PATH}/heimdall:/config
+    ports:
+      - 80:80
+      - 443:443
+    restart: unless-stopped
