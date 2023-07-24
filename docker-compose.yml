@@ -207,10 +207,21 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
 
+  glances:
+    image: nicolargo/glances:latest-full
+    pid: host
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - "GLANCES_OPT=-w"
+    restart: unless-stopped
+
   homer:
     image: b4bz/homer
     restart: unless-stopped
     volumes:
       - ${CONFIG_PATH}/homer:/www/assets
     ports:
-      - 8080:8080
+      - 9080:8080
+    restart: unless-stopped
