@@ -223,5 +223,5 @@ services:
     volumes:
       - ${CONFIG_PATH}/homer:/www/assets
     ports:
-      - 9080:8080
+      - 80:8080
     restart: unless-stopped
