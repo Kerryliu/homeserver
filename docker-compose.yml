@@ -6,8 +6,6 @@ services:
       - ${CONFIG_PATH}/homeassistant:/config
       - /etc/localtime:/etc/localtime:ro
       - /run/dbus:/run/dbus:ro
-        #devices:
-        #- /dev/ttyACM0:/dev/ttyUSB0
     privileged: true
     network_mode: host
     restart: unless-stopped
@@ -36,7 +34,6 @@ services:
       - NET_LOCAL=192.168.1.0/24
     restart: unless-stopped
     ports:
-      - 9117:9117 # jackett
       - 8989:8989 # sonarr
       - 7878:7878 # radarr
       - 9696:9696 # prowlarr
@@ -160,6 +157,8 @@ services:
       - ${CONFIG_PATH}/plex:/config
       - ${TV_PATH}:/tv #optional
       - ${MOVIE_PATH}:/movies #optional
+    devices:
+       - /dev/dri:/dev/dri # For H/W transcoding
     restart: unless-stopped
 
   komga:
@@ -208,13 +207,15 @@ services:
     restart: unless-stopped
 
   glances:
-    image: nicolargo/glances:latest-full
+    image: nicolargo/glances
     pid: host
     network_mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /run/user/1000/podman/podman.sock:/run/user/1000/podman/podman.sock
     environment:
       - "GLANCES_OPT=-w"
+      - TZ=America/Los_Angeles
     restart: unless-stopped
 
   homer:
