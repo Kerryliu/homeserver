@@ -188,7 +188,7 @@ services:
       - TUNNEL_TOKEN=${CLOUDFLARED_TOKEN}
 
   uptime-kuma:
-    image: louislam/uptime-kuma:1
+    image: louislam/uptime-kuma
     restart: unless-stopped
     volumes:
       - ${CONFIG_PATH}/kuma:/app/data
@@ -220,7 +220,6 @@ services:
 
   homer:
     image: b4bz/homer
-    restart: unless-stopped
     volumes:
       - ${CONFIG_PATH}/homer:/www/assets
     ports:
