@@ -193,6 +193,8 @@ services:
     volumes:
       - ${CONFIG_PATH}/kuma:/app/data
       - /var/run/docker.sock:/var/run/docker.sock
+    dns:
+      - 8.8.8.8
     ports:
       - 3001:3001
 
