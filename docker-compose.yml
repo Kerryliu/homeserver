@@ -151,7 +151,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Etc/PST
+      - TZ=America/Los_Angeles
       - VERSION=docker
     volumes:
       - ${CONFIG_PATH}/plex:/config
@@ -179,6 +179,7 @@ services:
     restart: unless-stopped
     environment:
       - WATCHTOWER_NOTIFICATION_URL=discord://${DISCORD_TOKEN}@${DISCORD_WEB_HOOK_ID}?Username=Watchtower
+      - WATCHTOWER_SCHEDULE:"30 2 * * *"
 
   cloudflared:
     image: cloudflare/cloudflared
@@ -216,6 +217,19 @@ services:
     environment:
       - "GLANCES_OPT=-w"
       - TZ=America/Los_Angeles
+    restart: unless-stopped
+
+  smokeping:
+    image: lscr.io/linuxserver/smokeping:latest
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+    volumes:
+      - ${CONFIG_PATH}/smokeping/config:/config
+      - ${CONFIG_PATH}/smokeping/data:/data
+    ports:
+      - 8321:80
     restart: unless-stopped
 
   homer:
