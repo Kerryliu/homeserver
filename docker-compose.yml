@@ -179,7 +179,7 @@ services:
     restart: unless-stopped
     environment:
       - WATCHTOWER_NOTIFICATION_URL=discord://${DISCORD_TOKEN}@${DISCORD_WEB_HOOK_ID}?Username=Watchtower
-      - WATCHTOWER_SCHEDULE:"30 2 * * *"
+      - WATCHTOWER_SCHEDULE="30 2 * * *"
 
   cloudflared:
     image: cloudflare/cloudflared
