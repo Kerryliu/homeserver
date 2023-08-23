@@ -175,11 +175,12 @@ services:
     image: containrrr/watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    command: --cleanup
     restart: unless-stopped
     environment:
       - WATCHTOWER_NOTIFICATION_URL=discord://${DISCORD_TOKEN}@${DISCORD_WEB_HOOK_ID}?Username=Watchtower
-      - WATCHTOWER_SCHEDULE="30 2 * * *"
+      - WATCHTOWER_SCHEDULE=0 30 2 * * *
+      - WATCHTOWER_CLEANUP=true
+      - TZ=America/Los_Angeles
 
   cloudflared:
     image: cloudflare/cloudflared
