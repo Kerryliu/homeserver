@@ -17,12 +17,11 @@ services:
       - NET_ADMIN
       - NET_RAW
     environment:
-      - TS_AUTHKEY=${TAIL_SCALE_AUTH_KEY}
       - TS_ROUTES=192.168.1.0/24
-      - TS_STATE_DIR=/var/lib
+      - TS_STATE_DIR=/var/lib/tailscale
       - TS_EXTRA_ARGS= --advertise-exit-node --accept-routes
     volumes:
-      - ${CONFIG_PATH}/tailscale:/var/lib
+      - ${CONFIG_PATH}/tailscale:/var/lib/tailscale
       - /dev/net/tun:/dev/net/tun
 
   vpn:
@@ -37,6 +36,7 @@ services:
       - 8989:8989 # sonarr
       - 7878:7878 # radarr
       - 9696:9696 # prowlarr
+      - 6767:6767 # bazarr
       - 9091:9091 # transmission
       - 51413:51413 # also transmission?
       - 51413:51413/udp
@@ -102,6 +102,21 @@ services:
       - ${CONFIG_PATH}/radarr:/config
       - ${MOVIE_PATH}:/movies #optional
       - ${DOWNLOADS_PATH}:/downloads #optional
+    restart: unless-stopped
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    network_mode: service:vpn
+    depends_on:
+      - vpn
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+    volumes:
+      - ${CONFIG_PATH}/bazarr:/config
+      - ${MOVIE_PATH}:/movies #optional
+      - ${TV_PATH}:/tv #optional
     restart: unless-stopped
 
   miniflux:
