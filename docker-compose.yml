@@ -33,6 +33,7 @@ services:
       - NET_LOCAL=192.168.1.0/24
     restart: unless-stopped
     ports:
+      - 8191:8191 # flareSolverr
       - 8989:8989 # sonarr
       - 7878:7878 # radarr
       - 9696:9696 # prowlarr
@@ -59,6 +60,15 @@ services:
       - ${CONFIG_PATH}/transmission:/config
       - ${DOWNLOADS_PATH}:/downloads
       - ${DOWNLOADS_PATH}/transmissionwatch:/watch
+    restart: unless-stopped
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    network_mode: service:vpn
+    depends_on:
+      - vpn
+    environment:
+      - TZ=America/Los_Angeles
     restart: unless-stopped
 
   prowlarr:
@@ -102,21 +112,6 @@ services:
       - ${CONFIG_PATH}/radarr:/config
       - ${MOVIE_PATH}:/movies #optional
       - ${DOWNLOADS_PATH}:/downloads #optional
-    restart: unless-stopped
-
-  bazarr:
-    image: lscr.io/linuxserver/bazarr:latest
-    network_mode: service:vpn
-    depends_on:
-      - vpn
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/Los_Angeles
-    volumes:
-      - ${CONFIG_PATH}/bazarr:/config
-      - ${MOVIE_PATH}:/movies #optional
-      - ${TV_PATH}:/tv #optional
     restart: unless-stopped
 
   miniflux:
