@@ -58,8 +58,7 @@ services:
       # - HOST_WHITELIST=dnsnane list #optional
     volumes:
       - ${CONFIG_PATH}/transmission:/config
-      - ${DOWNLOADS_PATH}:/downloads
-      - ${DOWNLOADS_PATH}/transmissionwatch:/watch
+      - downloads:/downloads
     restart: unless-stopped
 
   flaresolverr:
@@ -95,8 +94,8 @@ services:
       - TZ=America/Los_Angeles
     volumes:
       - ${CONFIG_PATH}/sonarr:/config
-      - ${TV_PATH}:/tv #optional
-      - ${DOWNLOADS_PATH}:/downloads #optional
+      - tv_shows:/tv #optional
+      - downloads:/downloads #optional
     restart: unless-stopped
 
   radarr:
@@ -110,8 +109,8 @@ services:
       - TZ=America/Los_Angeles
     volumes:
       - ${CONFIG_PATH}/radarr:/config
-      - ${MOVIE_PATH}:/movies #optional
-      - ${DOWNLOADS_PATH}:/downloads #optional
+      - movies:/movies #optional
+      - downloads:/downloads #optional
     restart: unless-stopped
 
   miniflux:
@@ -165,8 +164,8 @@ services:
       - VERSION=docker
     volumes:
       - ${CONFIG_PATH}/plex:/config
-      - ${TV_PATH}:/tv #optional
-      - ${MOVIE_PATH}:/movies #optional
+      - tv_shows:/tv #optional
+      - movies:/movies #optional
     devices:
        - /dev/dri:/dev/dri # For H/W transcoding
     restart: unless-stopped
@@ -175,7 +174,7 @@ services:
     image: gotson/komga
     volumes:
       - ${CONFIG_PATH}/komga/config:/config
-      - ${BOOKS_PATH}:/data #optional
+      - books:/data #optional
     ports:
       - 25600:25600
     user: "1000:1000"
@@ -190,6 +189,7 @@ services:
       - WATCHTOWER_NOTIFICATION_URL=discord://${DISCORD_TOKEN}@${DISCORD_WEB_HOOK_ID}?Username=Watchtower
       - WATCHTOWER_SCHEDULE=0 30 2 * * *
       - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_REMOVE_VOLUMES=true
       - TZ=America/Los_Angeles
 
   cloudflared:
@@ -250,3 +250,28 @@ services:
     ports:
       - 80:8080
     restart: unless-stopped
+
+volumes:
+  tv_shows:
+    driver_opts:
+      type: nfs
+      o: ${NFS_ADDRESS}
+      device: ${NFS_TV_SHOWS_PATH}
+
+  movies:
+    driver_opts:
+      type: nfs
+      o: ${NFS_ADDRESS}
+      device: ${NFS_MOVIES_PATH}
+
+  books:
+    driver_opts:
+      type: nfs
+      o: ${NFS_ADDRESS}
+      device: ${NFS_BOOKS_PATH}
+
+  downloads:
+    driver_opts:
+      type: nfs
+      o: ${NFS_ADDRESS}
+      device: ${NFS_DOWNLOADS_PATH}
