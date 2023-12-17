@@ -20,6 +20,7 @@ services:
       - TS_AUTHKEY=${TAIL_SCALE_AUTH_KEY}
       - TS_ROUTES=192.168.1.0/24
       - TS_STATE_DIR=/var/lib/tailscale
+      - TS_EXTRA_ARGS=--advertise-exit-node
     volumes:
       - ${CONFIG_PATH}/tailscale:/var/lib/tailscale
       - /dev/net/tun:/dev/net/tun
