@@ -1,5 +1,34 @@
 version: "3.9"
 services:
+  traefik:
+    image: traefik
+    command:
+      - --providers.docker.exposedbydefault=false
+      - --api.insecure=true
+      - --providers.docker=true
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --entrypoints.web.http.redirections.entrypoint.permanent=true
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.myresolver.acme.dnschallenge=true
+      - --certificatesresolvers.myresolver.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.myresolver.acme.email=${EMAIL}
+      - --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+    environment:
+      - CF_API_EMAIL=${EMAIL}
+      - CF_API_KEY=${CF_API_KEY}
+    restart: unless-stopped
+
   homeassistant:
     image: ghcr.io/home-assistant/home-assistant
     volumes:
@@ -9,6 +38,11 @@ services:
     privileged: true
     network_mode: host
     restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.smarthome.rule=Host(`smarthome.${LOCAL_DOMAIN}`)
+      - traefik.http.routers.smarthome.tls.certresolver=myresolver
+      - traefik.http.services.smarthome.loadbalancer.server.port=8123
 
   tailscale:
     image: tailscale/tailscale
@@ -38,10 +72,31 @@ services:
       - 8989:8989 # sonarr
       - 7878:7878 # radarr
       - 9696:9696 # prowlarr
-      - 6767:6767 # bazarr
       - 9091:9091 # transmission
       - 51413:51413 # also transmission?
       - 51413:51413/udp
+    labels:
+      - traefik.enable=true
+
+      - traefik.http.routers.sonarr.rule=Host(`sonarr.${LOCAL_DOMAIN}`)
+      - traefik.http.routers.sonarr.service=sonarr
+      - traefik.http.routers.sonarr.tls.certresolver=myresolver
+      - traefik.http.services.sonarr.loadbalancer.server.port=8989
+
+      - traefik.http.routers.radarr.rule=Host(`radarr.${LOCAL_DOMAIN}`)
+      - traefik.http.routers.radarr.service=radarr
+      - traefik.http.routers.radarr.tls.certresolver=myresolver
+      - traefik.http.services.radarr.loadbalancer.server.port=7878
+
+      - traefik.http.routers.prowlarr.rule=Host(`prowlarr.${LOCAL_DOMAIN}`)
+      - traefik.http.routers.prowlarr.service=prowlarr
+      - traefik.http.routers.prowlarr.tls.certresolver=myresolver
+      - traefik.http.services.prowlarr.loadbalancer.server.port=9696
+
+      - traefik.http.routers.transmission.rule=Host(`transmission.${LOCAL_DOMAIN}`)
+      - traefik.http.routers.transmission.service=transmission
+      - traefik.http.routers.transmission.tls.certresolver=myresolver
+      - traefik.http.services.transmission.loadbalancer.server.port=9091
 
   transmission:
     image: ghcr.io/linuxserver/transmission
@@ -76,6 +131,7 @@ services:
     network_mode: service:vpn
     depends_on:
       - vpn
+      - flaresolverr
     environment:
       - PUID=1000
       - PGID=1000
@@ -89,6 +145,8 @@ services:
     network_mode: service:vpn
     depends_on:
       - vpn
+      - transmission
+      - prowlarr
     environment:
       - PUID=1000
       - PGID=1000
@@ -104,6 +162,8 @@ services:
     network_mode: service:vpn
     depends_on:
       - vpn
+      - transmission
+      - prowlarr
     environment:
       - PUID=1000
       - PGID=1000
@@ -118,7 +178,7 @@ services:
     image: miniflux/miniflux
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - 8888:8080
     depends_on:
       minifluxdb:
         condition: service_healthy
@@ -128,6 +188,10 @@ services:
       - CREATE_ADMIN=1
       - ADMIN_USERNAME=${MINIFLUX_USER}
       - ADMIN_PASSWORD=${MINIFLUX_PASS}
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.reader.rule=Host(`reader.${LOCAL_DOMAIN}`)
+      - traefik.http.routers.reader.tls.certresolver=myresolver
 
   minifluxdb:
     image: postgres:14
@@ -147,13 +211,16 @@ services:
     ports:
       - 53:53/tcp
       - ${LOCAL_IP}:53:53/udp # https://discourse.pi-hole.net/t/solve-dns-resolution-in-other-containers-when-using-docker-pihole/31413
-      - 3000:3000/tcp
-      - 8081:80/tcp
-      - 8443:443/tcp
+      - 80/tcp
     volumes:
       - ${CONFIG_PATH}/adguard/work:/opt/adguardhome/work
       - ${CONFIG_PATH}/adguard/config:/opt/adguardhome/conf
     restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.adguardhome.rule=Host(`adguardhome.${LOCAL_DOMAIN}`)
+      - traefik.http.routers.adguardhome.tls.certresolver=myresolver
+      - traefik.http.services.adguardhome.loadbalancer.server.port=80
 
   plex:
     image: lscr.io/linuxserver/plex
@@ -180,6 +247,10 @@ services:
       - 25600:25600
     user: "1000:1000"
     restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.komga.rule=Host(`komga.${LOCAL_DOMAIN}`)
+      - traefik.http.routers.komga.tls.certresolver=myresolver
 
   watchtower:
     image: containrrr/watchtower
@@ -202,22 +273,30 @@ services:
 
   uptime-kuma:
     image: louislam/uptime-kuma
-    restart: unless-stopped
+    expose:
+      - 3001
     volumes:
       - ${CONFIG_PATH}/kuma:/app/data
       - /var/run/docker.sock:/var/run/docker.sock
-    ports:
-      - 3001:3001
+    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.uptime.rule=Host(`uptime.${LOCAL_DOMAIN}`)
+      - traefik.http.routers.uptime.tls.certresolver=myresolver
 
   portainer:
     image: portainer/portainer-ce
     ports:
-      - 9443:9443
       - 9000:9000
     volumes:
       - ${CONFIG_PATH}/portainer:/data
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.portainer.rule=Host(`portainer.${LOCAL_DOMAIN}`)
+      - traefik.http.routers.portainer.tls.certresolver=myresolver
+      - traefik.http.services.portainer.loadbalancer.server.port=9000
 
   glances:
     image: nicolargo/glances
@@ -225,11 +304,15 @@ services:
     network_mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /run/user/1000/podman/podman.sock:/run/user/1000/podman/podman.sock
     environment:
       - "GLANCES_OPT=-w"
       - TZ=America/Los_Angeles
     restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.glances.rule=Host(`glances.${LOCAL_DOMAIN}`)
+      - traefik.http.routers.glances.tls.certresolver=myresolver
+      - traefik.http.services.glances.loadbalancer.server.port=61208
 
   smokeping:
     image: lscr.io/linuxserver/smokeping:latest
@@ -240,17 +323,28 @@ services:
     volumes:
       - ${CONFIG_PATH}/smokeping/config:/config
       - ${CONFIG_PATH}/smokeping/data:/data
-    ports:
-      - 8321:80
+    expose:
+      - 80
     restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.smokeping.rule=Host(`smokeping.${LOCAL_DOMAIN}`)
+      - traefik.http.routers.smokeping.tls.certresolver=myresolver
 
-  homer:
-    image: b4bz/homer
-    volumes:
-      - ${CONFIG_PATH}/homer:/www/assets
-    ports:
-      - 80:8080
+  homarr:
+    image: ghcr.io/ajnart/homarr:latest
     restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # Optional, only if you want docker integration
+      - ${CONFIG_PATH}/homarr/configs:/app/data/configs
+      - ${CONFIG_PATH}/homarr/icons:/app/public/icons
+      - ${CONFIG_PATH}/homarr/data:/data
+    expose:
+      - 7575
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.homarr.rule=Host(`homarr.${LOCAL_DOMAIN}`)
+      - traefik.http.routers.homarr.tls.certresolver=myresolver
 
 volumes:
   tv_shows:
@@ -276,3 +370,5 @@ volumes:
       type: nfs
       o: ${NFS_ADDRESS}
       device: ${NFS_DOWNLOADS_PATH}
+
+  traefik_letsencrypt:
